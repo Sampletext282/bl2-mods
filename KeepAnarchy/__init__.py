@@ -4,7 +4,7 @@ import json
 from Mods.ModMenu import EnabledSaveType, Mods, ModTypes, RegisterMod, SDKMod, Options, Hook, Game
 from typing import cast
 
-from unrealsdk import FindObject, Log, UObject, GetEngine
+from unrealsdk import FindObject, UObject, GetEngine
 
 class anarchystacks(SDKMod):
     # need to add the option to keep anarchy when dying
@@ -54,7 +54,9 @@ class anarchystacks(SDKMod):
     
     def set_anarchy_stacks(self, target_stacks) -> None: 
         """Set anarchy stacks to desired value""" # FindObject from Justin99's Speedrun Practice Mod https://github.com/Justin99x/bl-sdk-mods/tree/main/SpeedrunPractice
-        FindObject("DesignerAttributeDefinition", "GD_Tulip_Mechromancer_Skills.Misc.Att_Anarchy_NumberOfStacks").SetAttributeBaseValue(cast(UObject, GetEngine().GamePlayers[0].Actor), target_stacks)
+        AnarchyAttribute = FindObject('DesignerAttributeDefinition', 'GD_Tulip_Mechromancer_Skills.Misc.Att_Anarchy_NumberOfStacks')
+        InstancedAnarachy = GetEngine().GamePlayers[0].Actor.Pawn.GetInstancedDesignerAttribute(AnarchyAttribute)
+        InstancedAnarachy.SetBaseValue((target_stacks, None, None, 1), GetEngine().GamePlayers[0].Actor.Pawn)
         return
         
     def get_data(self) -> dict:
@@ -74,7 +76,7 @@ class anarchystacks(SDKMod):
         # TODO still attemps to save Anarchy even if the player isn't Gaige
         current_anarchy = self.get_anarchy_stacks()
         if current_anarchy != 0:
-            Log("current anarchy is not zero")
+            #Log("current anarchy is not zero")
             stacks = self.get_data()
             stacks[self.savefile] = str(current_anarchy)
             self.dump_data(stacks)
@@ -85,7 +87,7 @@ class anarchystacks(SDKMod):
         max_anarchy = self.get_max_anarchy_stacks()
         stacks = self.get_data()
         if self.savefile in stacks:
-            Log(".sav found in the .json")
+            #Log(".sav found in the .json")
             anarchy_stacks = stacks[self.savefile]
             anarchy_stacks = int(anarchy_stacks)
             if (anarchy_stacks*self.PercentSlider.CurrentValue // 100) >= self.Threshold.CurrentValue:
@@ -95,8 +97,8 @@ class anarchystacks(SDKMod):
             stacks.pop(self.savefile)
             self.dump_data(stacks)
         else:
-            Log(".sav not found in the .json")
-        return
+            #Log(".sav not found in the .json")
+            return
     
     """Hooks that are used to determine when the player spawned for the first time after save quiting"""
     # doing it this way: First Hook triggers to early if you set the stacks there, they would get deleted when the spawning is finished
@@ -104,14 +106,14 @@ class anarchystacks(SDKMod):
     @Hook("WillowGame.PlayerSkillTree.Initialize") # Hook and caller from LaryIsland's Melee Enhanced mod https://github.com/LaryIsland/bl-sdk-mods/tree/main/MeleeEnhancement
     def InjectSkillChanges(self, caller: unrealsdk.UObject, function: unrealsdk.UFunction, params: unrealsdk.FStruct) -> bool:  
         if caller.Outer.PlayerClass.CharacterNameId.CharacterClassId.ClassName == "Mechromancer": # checks if the player is gaige
-            Log("Player is Gaige")
+            #Log("Player is Gaige")
             self.firstime = True
         return True
     @Hook("WillowGame.WillowPlayerController.SaveGame") 
     def Spawned(self, caller: unrealsdk.UObject, function: unrealsdk.UFunction, params: unrealsdk.FStruct) -> bool:
         if self.firstime: 
             self.savefile = cast(UObject, GetEngine().GamePlayers[0].Actor).GetWillowGlobals().GetWillowSaveGameManager().LastLoadedFilePath # cast is the savefile name.sav || cast from Justin99's Speedrun Practice Mod https://github.com/Justin99x/bl-sdk-mods/tree/main/SpeedrunPractice
-            Log("retriving anarchy stacks")
+            ("retriving anarchy stacks")
             self.retrive_anarchy_stacks()
             self.firstime = False
         return True
@@ -119,20 +121,20 @@ class anarchystacks(SDKMod):
     """Hook for detecting savequit and saving the Anarchystacks before"""
     @Hook("WillowGame.WillowPlayerController.ReturnToTitleScreen")
     def onExit(self, caller: unrealsdk.UObject, function: unrealsdk.UFunction, params: unrealsdk.FStruct) -> bool:
-        Log("saving anarchy stacks")
+        #Log("saving anarchy stacks")
         self.save_anarchy_stacks()
         return True
         
 instance = anarchystacks()
 
 if __name__ == "__main__":
-    Log(f"[{instance.Name}] Manually loaded")
+    #Log(f"[{instance.Name}] Manually loaded")
     for mod in Mods:
         if mod.Name == instance.Name:
             if mod.IsEnabled:
                 mod.Disable()
             Mods.remove(mod)
-            Log(f"[{instance.Name}] Removed last instance")
+            #Log(f"[{instance.Name}] Removed last instance")
 
             # Fixes inspect.getfile()
             instance.__class__.__module__ = mod.__class__.__module__
